@@ -1,0 +1,96 @@
+[project]
+name = "argus-backend"
+version = "0.1.0"
+description = "ARGUS - local-first job discovery, matching and application assistant (backend API + worker)."
+requires-python = ">=3.13,<3.15"
+dependencies = [
+    "fastapi>=0.162,<0.163",
+    "uvicorn[standard]>=0.54,<0.55",
+    "pydantic[email]>=2.14,<3",
+    "pydantic-settings>=2.10,<3",
+    "psycopg2-binary>=2.9.13,<2.10",
+    "httpx>=0.28,<0.29",
+    "pypdf>=7.1,<8",
+    "python-docx>=1.2,<2",
+    "python-multipart>=0.0.20",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "respx>=0.22",
+    "ruff>=0.14",
+    "mypy>=1.18",
+    "types-psycopg2>=2.9",
+]
+
+[project.scripts]
+argus-migrate = "app.db.migrate:main"
+argus-worker = "app.worker.main:main"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]  # includes app/db/migrations/*.sql
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["."]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # bugbear
+    "S",        # bandit (security) - S608 blocks string-built SQL
+    "SIM",      # simplify
+    "RUF",      # ruff-specific
+    "PERF",     # performance anti-patterns
+    "C4",       # comprehensions
+    "PT",       # pytest style
+    "LOG", "G", # logging hygiene (no f-strings in log calls)
+]
+ignore = [
+    "B008",     # FastAPI's Depends()/Query() in defaults is idiomatic
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_decorators = false
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers -m 'not llm'"
+markers = [
+    "llm: talks to a real local Ollama model (slow). Run with: pytest -m llm",
+    "integration: needs the PostgreSQL container running",
+]
+filterwarnings = [
+    "error::DeprecationWarning:app.*",
+    "ignore:Using `httpx` with `starlette.testclient`",
+]

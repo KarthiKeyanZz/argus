@@ -1,0 +1,48 @@
+# --- secrets & local config (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+client_secret*.json
+token*.json
+credentials*.json
+service-account*.json
+*.sqlite
+*.db
+
+# --- personal data / runtime state ---
+data/
+uploads/
+resumes/
+browser-profile*/
+playwright/.auth/
+screenshots/
+*.log
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# --- node ---
+node_modules/
+.vite/
+coverage/
+
+# --- editors / os ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

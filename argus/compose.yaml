@@ -1,0 +1,41 @@
+# Local infrastructure for ARGUS. Run with:  make db-up   (podman compose / docker compose)
+name: argus
+
+services:
+  postgres:
+    # PostgreSQL 18 + pgvector (embeddings / vector indexes). Free, open source.
+    image: docker.io/pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in argus/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in argus/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-argus}
+    # Bound to loopback only: the database is never reachable from the network.
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - random_page_cost=1.1          # SSD
+      - -c
+      - log_min_duration_statement=250  # log queries slower than 250 ms
+    volumes:
+      - argus-pg:/var/lib/postgresql  # PG18 image layout
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  argus-pg:
